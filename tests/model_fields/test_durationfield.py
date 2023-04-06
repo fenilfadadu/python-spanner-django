@@ -46,7 +46,7 @@ class TestQuerying(TestCase):
         )
 
     def test_gt(self):
-        self.assertCountEqual(
+        self.assertSequenceEqual(
             DurationModel.objects.filter(field__gt=datetime.timedelta(days=0)),
             [self.objs[0], self.objs[1]]
         )

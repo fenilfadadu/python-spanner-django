@@ -22,11 +22,9 @@ class PeopleMoreData(models.Model):
 
 
 class DigitsInColumnName(models.Model):
-    # These are edited as none of the column names (leading digits) are
-    # supported by Spanner.
-    all_digits = models.CharField(max_length=11, db_column='one_two_three')
-    leading_digit = models.CharField(max_length=11, db_column='four_extra')
-    leading_digits = models.CharField(max_length=11, db_column='five_extra')
+    all_digits = models.CharField(max_length=11, db_column='123')
+    leading_digit = models.CharField(max_length=11, db_column='4extra')
+    leading_digits = models.CharField(max_length=11, db_column='45extra')
 
 
 class SpecialName(models.Model):
@@ -34,14 +32,13 @@ class SpecialName(models.Model):
     # Underscores
     field_field_0 = models.IntegerField(db_column='Field_')
     field_field_1 = models.IntegerField(db_column='Field__')
-    field_field_2 = models.IntegerField(db_column='x__field')
+    field_field_2 = models.IntegerField(db_column='__field')
     # Other chars
-    prc_x = models.IntegerField(db_column='prcx')
-    # Edited as Spanner doesn't support non-ASCII columns.
-    non_ascii = models.IntegerField(db_column='tamano')
+    prc_x = models.IntegerField(db_column='prc(%) x')
+    non_ascii = models.IntegerField(db_column='tamaño')
 
     class Meta:
-        db_table = "inspectdb_special-table name"
+        db_table = "inspectdb_special.table name"
 
 
 class ColumnTypes(models.Model):

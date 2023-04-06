@@ -269,7 +269,7 @@ class ProxyModelTests(TestCase):
         u2 = UserProxy.objects.create(name='George')
 
         resp = [u.name for u in UserProxy.objects.all()]
-        self.assertCountEqual(resp, ['Bruce', 'George'])
+        self.assertEqual(resp, ['Bruce', 'George'])
 
         u2.delete()
 

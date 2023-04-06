@@ -115,7 +115,7 @@ class AdminViewBasicTestCase(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.superuser = User.objects.create_superuser(username='super', password='secret', email='super@example.com')
-        cls.s1 = Section.objects.create(name='Test section', id=1)
+        cls.s1 = Section.objects.create(name='Test section')
         cls.a1 = Article.objects.create(
             content='<p>Middle content</p>',
             date=datetime.datetime(2008, 3, 18, 11, 54, 58),
@@ -1357,7 +1357,7 @@ class SaveAsTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.superuser = User.objects.create_superuser(username='super', password='secret', email='super@example.com')
-        cls.per1 = Person.objects.create(name='John Mauchly', gender=1, alive=True, id=1)
+        cls.per1 = Person.objects.create(name='John Mauchly', gender=1, alive=True)
 
     def setUp(self):
         self.client.force_login(self.superuser)
@@ -1543,16 +1543,16 @@ class AdminViewPermissionsTest(TestCase):
         cls.deleteuser = User.objects.create_user(username='deleteuser', password='secret', is_staff=True)
         cls.joepublicuser = User.objects.create_user(username='joepublic', password='secret')
         cls.nostaffuser = User.objects.create_user(username='nostaff', password='secret')
-        cls.s1 = Section.objects.create(name='Test section', id=1)
+        cls.s1 = Section.objects.create(name='Test section')
         cls.a1 = Article.objects.create(
             content='<p>Middle content</p>', date=datetime.datetime(2008, 3, 18, 11, 54, 58), section=cls.s1,
-            another_section=cls.s1, id=1,
+            another_section=cls.s1,
         )
         cls.a2 = Article.objects.create(
-            content='<p>Oldest content</p>', date=datetime.datetime(2000, 3, 18, 11, 54, 58), section=cls.s1, id=2,
+            content='<p>Oldest content</p>', date=datetime.datetime(2000, 3, 18, 11, 54, 58), section=cls.s1
         )
         cls.a3 = Article.objects.create(
-            content='<p>Newest content</p>', date=datetime.datetime(2009, 3, 18, 11, 54, 58), section=cls.s1, id=3,
+            content='<p>Newest content</p>', date=datetime.datetime(2009, 3, 18, 11, 54, 58), section=cls.s1
         )
         cls.p1 = PrePopulatedPost.objects.create(title='A Long Title', published=True, slug='a-long-title')
 
@@ -2071,14 +2071,13 @@ class AdminViewPermissionsTest(TestCase):
         self.assertEqual(post.status_code, 403)
         self.assertEqual(Article.objects.count(), article_count)
 
-        old_ids = list(Article.objects.values_list('id', flat=True))
         # User with both add and change permissions should be redirected to the
         # change page for the newly created object.
         article_count = Article.objects.count()
         self.client.force_login(self.superuser)
         post = self.client.post(article_change_url, change_dict_save_as_new)
         self.assertEqual(Article.objects.count(), article_count + 1)
-        new_article = Article.objects.exclude(id__in=old_ids).latest('id')
+        new_article = Article.objects.latest('id')
         self.assertRedirects(post, reverse('admin:admin_views_article_change', args=(new_article.pk,)))
 
     def test_change_view_with_view_only_inlines(self):
@@ -3477,13 +3476,8 @@ class AdminViewListEditable(TestCase):
         corresponding human-readable value is displayed instead. The hidden pk
         fields are displayed but separately (not in the table) and only once.
         """
-        story1 = Story.objects.create(
-            id=1,
-            title='The adventures of Guido',
-            content='Once upon a time in Djangoland...',
-        )
+        story1 = Story.objects.create(title='The adventures of Guido', content='Once upon a time in Djangoland...')
         story2 = Story.objects.create(
-            id=2,
             title='Crouching Tiger, Hidden Python',
             content='The Python was sneaking into...',
         )
@@ -3508,12 +3502,10 @@ class AdminViewListEditable(TestCase):
             Refs #12475.
         """
         story1 = OtherStory.objects.create(
-            id=1,
             title='The adventures of Guido',
             content='Once upon a time in Djangoland...',
         )
         story2 = OtherStory.objects.create(
-            id=2,
             title='Crouching Tiger, Hidden Python',
             content='The Python was sneaking into...',
         )
@@ -5095,7 +5087,7 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
         response = self.client.get(reverse('admin:admin_views_choice_change', args=(choice.pk,)))
         self.assertContains(response, '<div class="readonly">No opinion</div>', html=True)
 
-    def test_readonly_foreignkey_links(self):
+    def _test_readonly_foreignkey_links(self, admin_site):
         """
         ForeignKey readonly fields render as links if the target model is
         registered in admin.
@@ -5112,10 +5104,10 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
             user=self.superuser,
         )
         response = self.client.get(
-            reverse('admin:admin_views_readonlyrelatedfield_change', args=(obj.pk,)),
+            reverse(f'{admin_site}:admin_views_readonlyrelatedfield_change', args=(obj.pk,)),
         )
         # Related ForeignKey object registered in admin.
-        user_url = reverse('admin:auth_user_change', args=(self.superuser.pk,))
+        user_url = reverse(f'{admin_site}:auth_user_change', args=(self.superuser.pk,))
         self.assertContains(
             response,
             '<div class="readonly"><a href="%s">super</a></div>' % user_url,
@@ -5123,7 +5115,7 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
         )
         # Related ForeignKey with the string primary key registered in admin.
         language_url = reverse(
-            'admin:admin_views_language_change',
+            f'{admin_site}:admin_views_language_change',
             args=(quote(language.pk),),
         )
         self.assertContains(
@@ -5133,6 +5125,12 @@ class ReadonlyTest(AdminFieldExtractionMixin, TestCase):
         )
         # Related ForeignKey object not registered in admin.
         self.assertContains(response, '<div class="readonly">Chapter 1</div>', html=True)
+
+    def test_readonly_foreignkey_links_default_admin_site(self):
+        self._test_readonly_foreignkey_links('admin')
+
+    def test_readonly_foreignkey_links_custom_admin_site(self):
+        self._test_readonly_foreignkey_links('namespaced_admin')
 
     def test_readonly_manytomany_backwards_ref(self):
         """
@@ -5469,9 +5467,7 @@ class UserAdminTest(TestCase):
         # Don't depend on a warm cache, see #17377.
         ContentType.objects.clear_cache()
 
-        # Expected query count decreased by two because Spanner lacks
-        # savepoints.
-        with self.assertNumQueries(8):
+        with self.assertNumQueries(10):
             response = self.client.get(reverse('admin:auth_user_change', args=(u.pk,)))
             self.assertEqual(response.status_code, 200)
 
@@ -5511,9 +5507,7 @@ class GroupAdminTest(TestCase):
         # Ensure no queries are skipped due to cached content type for Group.
         ContentType.objects.clear_cache()
 
-        # Expected query count decreased by two because Spanner lacks
-        # savepoints.
-        with self.assertNumQueries(6):
+        with self.assertNumQueries(8):
             response = self.client.get(reverse('admin:auth_group_change', args=(g.pk,)))
             self.assertEqual(response.status_code, 200)
 
